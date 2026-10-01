@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Assessment — SkillPath AI{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="section-heading"><div class="eyebrow">Step 1 • Discover</div><h1>Build your career profile</h1><p>Tell us what you enjoy and where your strengths are. There are no right or wrong answers.</p></div>
+  <form method="post">
+    <div class="panel mt-4">
+      <h4>Basic information</h4>
+      <div class="row g-3 mt-1">
+        <div class="col-md-6"><label class="form-label">Education</label>
+          <select class="form-select" name="education" required>
+            <option value="">Choose</option>
+            <option>Class 10</option><option>Class 12</option><option>ITI</option><option>Diploma</option><option>Other</option>
+          </select>
+        </div>
+        <div class="col-md-6"><label class="form-label">Age</label><input class="form-control" type="number" name="age" min="12" max="80" value="{{ profile.age if profile and profile.age else '' }}"></div>
+      </div>
+    </div>
+
+    <div class="panel mt-4">
+      <h4>What interests you?</h4>
+      <div class="interest-grid mt-3">
+        {% for x in ['automobile','machines','mechanical','electricity','electronics','technology','solar','environment','healthcare','people','medical','devices','manufacturing','construction','metal'] %}
+        <label class="interest-chip"><input type="checkbox" name="interests" value="{{ x }}"> <span>{{ x|title }}</span></label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="panel mt-4">
+      <h4>Self-assessed strengths</h4>
+      <p class="text-muted small">Use 0–100. These are prototype inputs; a future version can replace them with a validated aptitude assessment.</p>
+      {% for field,label in [('technical_score','Technical / practical work'),('problem_solving_score','Problem solving'),('hands_on_score','Hands-on work'),('communication_score','Communication'),('digital_score','Digital skills')] %}
+      <div class="range-row">
+        <div class="d-flex justify-content-between"><label>{{ label }}</label><output id="{{ field }}_out">50</output></div>
+        <input type="range" class="form-range" name="{{ field }}" id="{{ field }}" min="0" max="100" value="50" oninput="{{ field }}_out.value=this.value">
+      </div>
+      {% endfor %}
+    </div>
+
+    <button class="btn btn-primary btn-lg mt-4">Generate my career matches →</button>
+  </form>
+</div>
+{% endblock %}

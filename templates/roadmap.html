@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Career Roadmap — SkillPath AI{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="section-heading"><div class="eyebrow">Your next steps</div><h1>{{ career.career_name }} roadmap</h1><p>A prototype progression plan that can later be populated from official qualification and NSQF data.</p></div>
+  <div class="roadmap mt-4">
+    {% for title,desc in [
+      ('1. Confirm eligibility','Check education requirements, local training options and family concerns.'),
+      ('2. Join training','Choose an appropriate vocational course and complete practical learning.'),
+      ('3. Build job-ready skills','Develop technical, practical, safety and communication skills.'),
+      ('4. Certification','Complete the relevant assessment/certification pathway.'),
+      ('5. Apprenticeship / first role','Apply for apprenticeship or entry-level opportunities.'),
+      ('6. Progress','Build experience and pursue advanced skills, specialist roles, supervision or entrepreneurship.')
+    ] %}
+    <div class="road-step"><div class="step-dot">{{ loop.index }}</div><div><h4>{{ title }}</h4><p>{{ desc }}</p></div></div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

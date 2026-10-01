@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Login — SkillPath AI{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="eyebrow">Welcome back</div>
+    <h1>Login</h1>
+    <p class="text-muted">Continue your career discovery journey.</p>
+    <form method="post" class="mt-4">
+      <label class="form-label">Email</label>
+      <input class="form-control form-control-lg mb-3" type="email" name="email" required>
+      <label class="form-label">Password</label>
+      <input class="form-control form-control-lg mb-3" type="password" name="password" required>
+      <button class="btn btn-primary btn-lg w-100">Login</button>
+    </form>
+    <p class="text-center mt-4 mb-0">New here? <a href="{{ url_for('register') }}">Create account</a></p>
+  </div>
+</div>
+{% endblock %}

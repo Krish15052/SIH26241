@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Create Account — SkillPath AI{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card wide">
+    <div class="eyebrow">Career discovery</div>
+    <h1>Create your account</h1>
+    <p class="text-muted">Start with a student profile or join as a family member.</p>
+    <form method="post" class="row g-3 mt-2">
+      <div class="col-md-6"><label class="form-label">Full name</label><input class="form-control" name="name" required></div>
+      <div class="col-md-6"><label class="form-label">Location</label><input class="form-control" name="location" placeholder="City / District"></div>
+      <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" type="email" name="email" required></div>
+      <div class="col-md-6"><label class="form-label">Password</label><input class="form-control" type="password" name="password" minlength="6" required></div>
+      <div class="col-12"><label class="form-label">I am joining as</label>
+        <select class="form-select" name="role">
+          <option value="student">Student</option>
+          <option value="parent">Parent / Family</option>
+        </select>
+      </div>
+      <div class="col-12"><button class="btn btn-primary btn-lg w-100">Create account</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

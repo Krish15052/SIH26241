@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Compare Careers — SkillPath AI{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="section-heading"><div class="eyebrow">Decision support</div><h1>Compare career pathways</h1><p>Select up to three pathways. This is a factual comparison tool, not a ranking.</p></div>
+  <form class="panel mt-4" method="get">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-9">
+        <label class="form-label">Career IDs (comma separated)</label>
+        <input class="form-control" name="ids" placeholder="Example: 1,2,3">
+      </div>
+      <div class="col-md-3"><button class="btn btn-primary w-100">Compare</button></div>
+    </div>
+    <div class="small text-muted mt-2">Use the IDs visible in the career library URL.</div>
+  </form>
+
+  {% if comparison %}
+  <div class="panel mt-4">
+    <div class="table-responsive">
+      <table class="table compare-table align-middle">
+        <thead><tr><th>Factor</th>{% for x in comparison %}<th>{{ x.career.career_name }}</th>{% endfor %}</tr></thead>
+        <tbody>
+          <tr><td>Sector</td>{% for x in comparison %}<td>{{ x.career.sector }}</td>{% endfor %}</tr>
+          <tr><td>Training</td>{% for x in comparison %}<td>{{ x.career.training_duration }}</td>{% endfor %}</tr>
+          <tr><td>Education</td>{% for x in comparison %}<td>{{ x.career.education_required }}</td>{% endfor %}</tr>
+          <tr><td>Job opportunities</td>{% for x in comparison %}<td>{{ x.job_count }}</td>{% endfor %}</tr>
+          <tr><td>Average salary</td>{% for x in comparison %}<td>₹{{ "{:,.0f}".format(x.avg_salary) }}</td>{% endfor %}</tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="demo-note">Compare the available information against your own interests, goals and family priorities.</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

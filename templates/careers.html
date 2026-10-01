@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Career Library — SkillPath AI{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="section-heading"><div class="eyebrow">Explore</div><h1>Vocational career library</h1><p>Explore pathways before making a decision with your family.</p></div>
+  <div class="row g-4 mt-2">
+  {% for career in careers %}
+    <div class="col-md-6 col-lg-4">
+      <div class="career-card h-100">
+        <span class="tag">{{ career.sector }}</span>
+        <h3 class="mt-2">{{ career.career_name }}</h3>
+        <p>{{ career.description }}</p>
+        <div class="small text-muted">Training: {{ career.training_duration }}</div>
+        <div class="small text-muted">Education: {{ career.education_required }}</div>
+        <a href="{{ url_for('career_detail', career_id=career.id) }}" class="btn btn-outline-dark w-100 mt-3">View details</a>
+      </div>
+    </div>
+  {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Family Decision Room — SkillPath AI{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="section-heading"><div class="eyebrow">Family Decision Room</div><h1>Make the decision together.</h1><p>Record concerns, then use career data to discuss them instead of relying only on assumptions.</p></div>
+  <div class="row g-4 mt-2">
+    <div class="col-lg-5">
+      <div class="panel">
+        <div class="panel-title">What are you concerned about?</div>
+        <form method="post" action="{{ url_for('add_concern') }}" class="mt-3">
+          <select class="form-select mb-3" name="concern_type">
+            <option>Salary</option><option>Job security</option><option>Career growth</option><option>Social perception</option><option>Distance from home</option><option>Training cost</option><option>Future of the career</option>
+          </select>
+          <textarea class="form-control mb-3" name="description" rows="5" placeholder="Write the family concern..."></textarea>
+          <button class="btn btn-primary w-100">Save concern</button>
+        </form>
+      </div>
+    </div>
+    <div class="col-lg-7">
+      <div class="panel">
+        <div class="panel-title">Decision checklist</div>
+        <div class="check-item">✓ Student interest and aptitude</div>
+        <div class="check-item">✓ Training duration and eligibility</div>
+        <div class="check-item">✓ Local opportunities</div>
+        <div class="check-item">✓ Earnings information</div>
+        <div class="check-item">✓ Career progression</div>
+        <div class="check-item">✓ Family concerns</div>
+        <hr>
+        <div class="panel-title">Saved concerns</div>
+        {% for c in concerns %}
+          <div class="concern"><b>{{ c.concern_type }}</b><p>{{ c.description or 'No additional details.' }}</p></div>
+        {% else %}
+          <p class="text-muted">No concerns saved yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

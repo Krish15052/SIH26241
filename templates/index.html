@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}SkillPath AI — Career decisions together{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="container py-5">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-7">
+        <div class="eyebrow">Smart Career Guidance</div>
+        <h1>Choose a career path with <span>your family</span>.</h1>
+        <p class="lead mt-3">AI-assisted vocational career counselling that combines student interests, aptitude, local opportunities, earnings information and family concerns.</p>
+        <div class="d-flex gap-3 flex-wrap mt-4">
+          {% if user %}
+            <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">Open Dashboard</a>
+          {% else %}
+            <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">Start Career Discovery</a>
+            <a href="{{ url_for('careers') }}" class="btn btn-outline-dark btn-lg">Explore Careers</a>
+          {% endif %}
+        </div>
+        <div class="hero-note mt-4">Explainable recommendations • Family decision room • Career roadmap</div>
+      </div>
+      <div class="col-lg-5">
+        <div class="hero-card">
+          <div class="mini-label">PERSONALIZED PATH</div>
+          <h3>Automobile Technician</h3>
+          <div class="score-ring">91%</div>
+          <div class="small text-muted mb-3">Illustrative match score</div>
+          <div class="reason">✓ Strong hands-on aptitude</div>
+          <div class="reason">✓ Automobile interest</div>
+          <div class="reason">✓ Problem-solving fit</div>
+          <a class="btn btn-dark w-100 mt-3" href="{{ url_for('careers') }}">See career pathways</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="container py-5">
+  <div class="section-heading">
+    <div class="eyebrow">How it works</div>
+    <h2>From uncertainty to a practical roadmap.</h2>
+  </div>
+  <div class="row g-4 mt-2">
+    <div class="col-md-4"><div class="feature-card"><div class="icon">01</div><h4>Discover</h4><p>Capture education, interests and aptitude through a short assessment.</p></div></div>
+    <div class="col-md-4"><div class="feature-card"><div class="icon">02</div><h4>Compare</h4><p>Explore training, jobs, earnings and progression for vocational pathways.</p></div></div>
+    <div class="col-md-4"><div class="feature-card"><div class="icon">03</div><h4>Decide together</h4><p>Use the Family Decision Room to surface concerns and create a shared plan.</p></div></div>
+  </div>
+</section>
+
+<section class="container pb-5">
+  <div class="row g-3">
+    <div class="col-md-4"><div class="stat-card"><strong>{{ stats.careers }}</strong><span>career pathways</span></div></div>
+    <div class="col-md-4"><div class="stat-card"><strong>{{ stats.jobs }}</strong><span>job opportunities</span></div></div>
+    <div class="col-md-4"><div class="stat-card"><strong>{{ stats.centres }}</strong><span>demo training centres</span></div></div>
+  </div>
+</section>
+{% endblock %}

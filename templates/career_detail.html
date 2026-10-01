@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ career.career_name }} — SkillPath AI{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="hero-mini">
+    <span class="tag">{{ career.sector }}</span>
+    <h1>{{ career.career_name }}</h1>
+    <p>{{ career.description }}</p>
+    <div class="row g-3 mt-2">
+      <div class="col-md-4"><div class="mini-stat"><span>Training</span><strong>{{ career.training_duration }}</strong></div></div>
+      <div class="col-md-4"><div class="mini-stat"><span>Eligibility</span><strong>{{ career.education_required }}</strong></div></div>
+      <div class="col-md-4"><div class="mini-stat"><span>NSQF</span><strong>{{ career.nsqf_level }}</strong></div></div>
+    </div>
+  </div>
+
+  <div class="row g-4 mt-4">
+    <div class="col-lg-5">
+      <div class="panel">
+        <div class="panel-title">Core skills</div>
+        {% for skill in skills %}
+          <div class="skill-line"><span>{{ skill.skill_name|title }}</span><span>{{ skill.importance }}/5</span></div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-lg-7">
+      <div class="panel">
+        <div class="panel-title">Earnings progression</div>
+        <div class="table-responsive">
+          <table class="table align-middle"><thead><tr><th>Experience</th><th>Salary range</th></tr></thead><tbody>
+          {% for e in earnings %}
+          <tr><td>{{ e.experience_years }} years</td><td>₹{{ "{:,.0f}".format(e.minimum_salary) }} – ₹{{ "{:,.0f}".format(e.maximum_salary) }}</td></tr>
+          {% endfor %}
+          </tbody></table>
+        </div>
+        <div class="demo-note">Salary figures can vary by location, employer, experience and role.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel mt-4">
+    <div class="panel-title">Job opportunities</div>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead><tr><th>Employer</th><th>Role</th><th>Location</th><th>Salary range</th></tr></thead>
+        <tbody>
+        {% for j in jobs %}
+          <tr><td>{{ j.company_name }}</td><td>{{ j.job_title }}</td><td>{{ j.location }}</td><td>₹{{ "{:,.0f}".format(j.minimum_salary) }}–₹{{ "{:,.0f}".format(j.maximum_salary) }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
