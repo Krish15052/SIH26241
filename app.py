@@ -17,7 +17,8 @@ DB_CONFIG = {
     "port": int(os.getenv("DB_PORT", "3306")),
     "user": os.getenv("DB_USER"),
     "password": os.getenv("DB_PASSWORD"),
-    "database": os.getenv("DB_NAME", "skillpath_ai"),
+    "database": os.getenv("DB_NAME", "defaultdb"),
+    "ssl_disabled": False
 }
 
 
