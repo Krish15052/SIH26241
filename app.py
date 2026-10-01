@@ -1,10 +1,8 @@
 import os
-import json
+import sqlite3
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-import mysql.connector
-from mysql.connector import Error
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,83 +10,194 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "skillpath-demo-secret-change-me")
 
-DB_CONFIG = {
-    "host": os.getenv("DB_HOST"),
-    "port": int(os.getenv("DB_PORT", "3306")),
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD"),
-    "database": os.getenv("DB_NAME", "defaultdb"),
-    "ssl_disabled": False
-}
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "skillpath_ai.db")
 
 
 def get_db():
-    try:
-        return mysql.connector.connect(**DB_CONFIG)
-    except Error as e:
-        if getattr(e, "errno", None) != 1049:
-            raise
-        bootstrap = DB_CONFIG.copy()
-        bootstrap.pop("database", None)
-        conn = mysql.connector.connect(**bootstrap)
-        cur = conn.cursor()
-        db_name = DB_CONFIG["database"].replace("`", "")
-        cur.execute(f"CREATE DATABASE IF NOT EXISTS `{db_name}`")
-        conn.commit()
-        cur.close()
-        conn.close()
-        return mysql.connector.connect(**DB_CONFIG)
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
 
 
 def initialize_database():
-    schema_path = os.path.join(os.path.dirname(__file__), "database", "schema.sql")
-    seed_path = os.path.join(os.path.dirname(__file__), "database", "seed.sql")
     conn = get_db()
     cur = conn.cursor()
-    with open(schema_path, "r", encoding="utf-8") as f:
-        schema_sql = f.read()
-    for statement in schema_sql.split(";"):
-        statement = statement.strip()
-        if not statement:
-            continue
-        upper = statement.upper()
-        if upper.startswith("CREATE DATABASE") or upper.startswith("USE "):
-            continue
-        cur.execute(statement)
+    cur.executescript("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        role TEXT DEFAULT 'student',
+        location TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS student_profiles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL UNIQUE,
+        education TEXT,
+        age INTEGER,
+        gender TEXT,
+        interests TEXT,
+        skills TEXT,
+        technical_score REAL DEFAULT 0,
+        problem_solving_score REAL DEFAULT 0,
+        hands_on_score REAL DEFAULT 0,
+        communication_score REAL DEFAULT 0,
+        digital_score REAL DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS careers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        career_name TEXT NOT NULL,
+        sector TEXT,
+        description TEXT,
+        education_required TEXT,
+        training_duration TEXT,
+        nsqf_level TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS career_skills (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        career_id INTEGER NOT NULL,
+        skill_name TEXT NOT NULL,
+        importance INTEGER DEFAULT 1,
+        FOREIGN KEY (career_id) REFERENCES careers(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        career_id INTEGER,
+        company_name TEXT,
+        job_title TEXT,
+        location TEXT,
+        minimum_salary REAL,
+        maximum_salary REAL,
+        experience_required TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (career_id) REFERENCES careers(id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS earnings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        career_id INTEGER NOT NULL,
+        experience_years INTEGER,
+        minimum_salary REAL,
+        maximum_salary REAL,
+        FOREIGN KEY (career_id) REFERENCES careers(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS training_centres (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        centre_name TEXT,
+        location TEXT,
+        course_name TEXT,
+        duration TEXT,
+        contact TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS recommendations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL,
+        career_id INTEGER NOT NULL,
+        match_score REAL,
+        reason TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (career_id) REFERENCES careers(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS family_concerns (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL,
+        concern_type TEXT,
+        description TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    """)
+
+    career_count = cur.execute("SELECT COUNT(*) AS c FROM careers").fetchone()[0]
+    if career_count == 0:
+        careers = [
+            ("Automobile Technician", "Automotive", "Diagnose, service and repair vehicles and mechanical systems.", "ITI / Diploma / vocational training", "6-12 months", "NSQF 4-5"),
+            ("Electrician", "Electrical", "Install, maintain and troubleshoot electrical systems.", "ITI / vocational training", "6-12 months", "NSQF 4-5"),
+            ("EV Technician", "Electric Mobility", "Service electric vehicles, batteries, motors and charging systems.", "ITI / Diploma / EV training", "6-12 months", "NSQF 4-5"),
+            ("Solar Technician", "Renewable Energy", "Install and maintain solar PV systems and related equipment.", "ITI / vocational training", "3-6 months", "NSQF 4"),
+            ("Electronics Technician", "Electronics", "Test, repair and maintain electronic devices and systems.", "ITI / Diploma", "6-12 months", "NSQF 4-5"),
+            ("CNC Operator", "Manufacturing", "Operate CNC machines and support precision manufacturing.", "ITI / Diploma", "6-12 months", "NSQF 4-5"),
+            ("Welder", "Manufacturing", "Perform welding and fabrication work across industrial applications.", "ITI / vocational training", "3-6 months", "NSQF 3-4"),
+            ("Healthcare Assistant", "Healthcare", "Support patients and healthcare teams with routine care tasks.", "Healthcare vocational training", "3-6 months", "NSQF 4"),
+        ]
+        cur.executemany("INSERT INTO careers(career_name,sector,description,education_required,training_duration,nsqf_level) VALUES(?,?,?,?,?,?)", careers)
+
+        skill_map = {
+            "Automobile Technician": [("Hands-on repair", 5), ("Diagnostics", 5), ("Mechanical", 4), ("Problem solving", 4)],
+            "Electrician": [("Electrical wiring", 5), ("Safety", 5), ("Troubleshooting", 4), ("Hands-on", 4)],
+            "EV Technician": [("EV systems", 5), ("Battery technology", 5), ("Electronics", 4), ("Diagnostics", 4)],
+            "Solar Technician": [("Solar PV", 5), ("Electrical", 4), ("Installation", 5), ("Safety", 4)],
+            "Electronics Technician": [("Electronics", 5), ("Testing", 4), ("Digital skills", 4), ("Troubleshooting", 5)],
+            "CNC Operator": [("CNC operation", 5), ("Measurement", 4), ("CAD/CAM basics", 4), ("Precision", 5)],
+            "Welder": [("Welding", 5), ("Fabrication", 5), ("Safety", 4), ("Hands-on", 5)],
+            "Healthcare Assistant": [("Patient care", 5), ("Communication", 5), ("First aid", 4), ("Empathy", 5)],
+        }
+        for name, skills in skill_map.items():
+            cid = cur.execute("SELECT id FROM careers WHERE career_name=?", (name,)).fetchone()[0]
+            cur.executemany("INSERT INTO career_skills(career_id,skill_name,importance) VALUES(?,?,?)", [(cid, s, i) for s, i in skills])
+
+        job_data = [
+            ("Tata Motors", "Automobile Technician", "Pune, Maharashtra", 180000, 360000, "0-2 years"),
+            ("Maruti Suzuki", "Automobile Technician", "Gurugram, Haryana", 180000, 380000, "0-2 years"),
+            ("Larsen & Toubro", "Electrician", "Mumbai, Maharashtra", 180000, 360000, "0-2 years"),
+            ("Tata Power", "Electrician", "Delhi NCR", 200000, 420000, "0-2 years"),
+            ("Tata Motors EV", "EV Technician", "Pune, Maharashtra", 240000, 500000, "0-2 years"),
+            ("Ola Electric", "EV Technician", "Bengaluru, Karnataka", 250000, 550000, "0-2 years"),
+            ("Tata Power Solar", "Solar Technician", "Delhi NCR", 180000, 420000, "0-2 years"),
+            ("Waaree Energies", "Solar Technician", "Mumbai, Maharashtra", 180000, 400000, "0-2 years"),
+            ("Bosch India", "Electronics Technician", "Bengaluru, Karnataka", 220000, 450000, "0-2 years"),
+            ("Siemens India", "CNC Operator", "Pune, Maharashtra", 220000, 480000, "0-2 years"),
+            ("Bharat Forge", "CNC Operator", "Pune, Maharashtra", 200000, 450000, "0-2 years"),
+            ("JSW Steel", "Welder", "Bellary, Karnataka", 180000, 360000, "0-2 years"),
+            ("Apollo Hospitals", "Healthcare Assistant", "Delhi NCR", 180000, 330000, "0-2 years"),
+        ]
+        for company, title, loc, mn, mx, exp in job_data:
+            cid = cur.execute("SELECT id FROM careers WHERE career_name=?", (title,)).fetchone()[0]
+            cur.execute("INSERT INTO jobs(career_id,company_name,job_title,location,minimum_salary,maximum_salary,experience_required) VALUES(?,?,?,?,?,?,?)", (cid, company, title, loc, mn, mx, exp))
+
+        for name in skill_map:
+            cid = cur.execute("SELECT id FROM careers WHERE career_name=?", (name,)).fetchone()[0]
+            for years, mn, mx in [(0, 180000, 300000), (2, 300000, 500000), (5, 450000, 750000)]:
+                cur.execute("INSERT INTO earnings(career_id,experience_years,minimum_salary,maximum_salary) VALUES(?,?,?,?)", (cid, years, mn, mx))
+
+        centres = [
+            ("Industrial Training Institute", "Delhi", "Electrical / Fitter / Electronics", "6-12 months", "Government ITI"),
+            ("Skill Development Centre", "Gurugram, Haryana", "Automotive / EV Technician", "6 months", "MSDE / Skill Centre"),
+            ("Solar Skill Centre", "Jaipur, Rajasthan", "Solar PV Technician", "3-6 months", "Skill training centre"),
+            ("Advanced Manufacturing Centre", "Pune, Maharashtra", "CNC Operator", "6 months", "Skill training centre"),
+        ]
+        cur.executemany("INSERT INTO training_centres(centre_name,location,course_name,duration,contact) VALUES(?,?,?,?,?)", centres)
+
     conn.commit()
-    cur.close()
     conn.close()
-    count = query("SELECT COUNT(*) AS c FROM careers", one=True)["c"]
-    if count == 0:
-        conn = get_db()
-        cur = conn.cursor()
-        with open(seed_path, "r", encoding="utf-8") as f:
-            seed_sql = f.read()
-        for statement in seed_sql.split(";"):
-            statement = statement.strip()
-            if not statement:
-                continue
-            upper = statement.upper()
-            if upper.startswith("USE ") or upper.startswith("DELETE FROM"):
-                continue
-            cur.execute(statement)
-        conn.commit()
-        cur.close()
-        conn.close()
 
 
 def query(sql, params=(), one=False, commit=False):
     conn = get_db()
-    cur = conn.cursor(dictionary=True)
     try:
-        cur.execute(sql, params)
+        cur = conn.execute(sql, params)
         if commit:
             conn.commit()
             return cur.lastrowid
         rows = cur.fetchone() if one else cur.fetchall()
-        return rows
+        return dict(rows) if one and rows else ([dict(r) for r in rows] if rows else [])
     finally:
-        cur.close()
         conn.close()
 
 
@@ -105,12 +214,7 @@ def login_required(fn):
 def current_user():
     if "user_id" not in session:
         return None
-    return query(
-        "SELECT id, name, email, role, location FROM users WHERE id=%s",
-        (session["user_id"],),
-        one=True
-    )
-
+    return query("SELECT id, name, email, role, location FROM users WHERE id=?", (session["user_id"],), one=True)
 
 CAREER_RULES = {
     "Automobile Technician": {
@@ -213,20 +317,20 @@ def register():
             flash("Please fill all required fields.", "danger")
             return render_template("register.html")
 
-        existing = query("SELECT id FROM users WHERE email=%s", (email,), one=True)
+        existing = query("SELECT id FROM users WHERE email=?", (email,), one=True)
         if existing:
             flash("An account with this email already exists.", "danger")
             return render_template("register.html")
 
         uid = query(
             """INSERT INTO users(name,email,password,role,location)
-               VALUES(%s,%s,%s,%s,%s)""",
+               VALUES(?,?,?,?,?)""",
             (name, email, generate_password_hash(password), role, location),
             commit=True
         )
 
         if role == "student":
-            query("INSERT INTO student_profiles(user_id) VALUES(%s)", (uid,), commit=True)
+            query("INSERT INTO student_profiles(user_id) VALUES(?)", (uid,), commit=True)
 
         session["user_id"] = uid
         flash("Account created successfully.", "success")
@@ -240,7 +344,7 @@ def login():
     if request.method == "POST":
         email = request.form["email"].strip().lower()
         password = request.form["password"]
-        user = query("SELECT * FROM users WHERE email=%s", (email,), one=True)
+        user = query("SELECT * FROM users WHERE email=?", (email,), one=True)
 
         if not user or not check_password_hash(user["password"], password):
             flash("Invalid email or password.", "danger")
@@ -263,7 +367,7 @@ def logout():
 @login_required
 def dashboard():
     user = current_user()
-    profile = query("SELECT * FROM student_profiles WHERE user_id=%s", (user["id"],), one=True)
+    profile = query("SELECT * FROM student_profiles WHERE user_id=?", (user["id"],), one=True)
 
     recommendations = []
     if profile:
@@ -285,7 +389,7 @@ def assessment():
         flash("The assessment is currently designed for student accounts.", "info")
         return redirect(url_for("dashboard"))
 
-    profile = query("SELECT * FROM student_profiles WHERE user_id=%s", (user["id"],), one=True)
+    profile = query("SELECT * FROM student_profiles WHERE user_id=?", (user["id"],), one=True)
 
     if request.method == "POST":
         education = request.form.get("education", "")
@@ -301,11 +405,11 @@ def assessment():
 
         query(
             """UPDATE student_profiles
-               SET education=%s, age=%s, interests=%s,
-                   technical_score=%s, problem_solving_score=%s,
-                   hands_on_score=%s, communication_score=%s,
-                   digital_score=%s
-               WHERE user_id=%s""",
+               SET education=?, age=?, interests=?,
+                   technical_score=?, problem_solving_score=?,
+                   hands_on_score=?, communication_score=?,
+                   digital_score=?
+               WHERE user_id=?""",
             (
                 education, age, interests,
                 scores["technical_score"], scores["problem_solving_score"],
@@ -324,7 +428,7 @@ def assessment():
 @login_required
 def recommendations():
     user = current_user()
-    profile = query("SELECT * FROM student_profiles WHERE user_id=%s", (user["id"],), one=True)
+    profile = query("SELECT * FROM student_profiles WHERE user_id=?", (user["id"],), one=True)
 
     if not profile or not profile.get("education"):
         flash("Complete the assessment first.", "warning")
@@ -335,7 +439,7 @@ def recommendations():
         career = item["career"]
         query(
             """INSERT INTO recommendations(student_id,career_id,match_score,reason)
-               VALUES(%s,%s,%s,%s)""",
+               VALUES(?,?,?,?)""",
             (user["id"], career["id"], item["score"], item["reason"]),
             commit=True
         )
@@ -351,20 +455,20 @@ def careers():
 
 @app.route("/career/<int:career_id>")
 def career_detail(career_id):
-    career = query("SELECT * FROM careers WHERE id=%s", (career_id,), one=True)
+    career = query("SELECT * FROM careers WHERE id=?", (career_id,), one=True)
     if not career:
         return "Career not found", 404
 
     skills = query(
-        "SELECT * FROM career_skills WHERE career_id=%s ORDER BY importance DESC",
+        "SELECT * FROM career_skills WHERE career_id=? ORDER BY importance DESC",
         (career_id,)
     )
     jobs = query(
-        "SELECT * FROM jobs WHERE career_id=%s ORDER BY maximum_salary DESC",
+        "SELECT * FROM jobs WHERE career_id=? ORDER BY maximum_salary DESC",
         (career_id,)
     )
     earnings = query(
-        "SELECT * FROM earnings WHERE career_id=%s ORDER BY experience_years",
+        "SELECT * FROM earnings WHERE career_id=? ORDER BY experience_years",
         (career_id,)
     )
 
@@ -387,7 +491,7 @@ def compare():
         try:
             clean_ids = [int(x) for x in ids.split(",") if x.strip().isdigit()][:3]
             if clean_ids:
-                placeholders = ",".join(["%s"] * len(clean_ids))
+                placeholders = ",".join(["?"] * len(clean_ids))
                 selected = query(
                     f"SELECT * FROM careers WHERE id IN ({placeholders})",
                     tuple(clean_ids)
@@ -400,7 +504,7 @@ def compare():
     for career in selected:
         jobs = query(
             "SELECT COUNT(*) AS c, COALESCE(AVG((minimum_salary+maximum_salary)/2),0) AS avg_salary "
-            "FROM jobs WHERE career_id=%s",
+            "FROM jobs WHERE career_id=?",
             (career["id"],), one=True
         )
         comparison.append({
@@ -422,7 +526,7 @@ def compare():
 def family():
     user = current_user()
     concerns = query(
-        "SELECT * FROM family_concerns WHERE student_id=%s ORDER BY created_at DESC",
+        "SELECT * FROM family_concerns WHERE student_id=? ORDER BY created_at DESC",
         (user["id"],)
     )
     return render_template("family.html", user=user, concerns=concerns)
@@ -435,7 +539,7 @@ def add_concern():
     concern = request.form.get("concern_type", "Career growth")
     details = request.form.get("description", "")
     query(
-        "INSERT INTO family_concerns(student_id,concern_type,description) VALUES(%s,%s,%s)",
+        "INSERT INTO family_concerns(student_id,concern_type,description) VALUES(?,?,?)",
         (user["id"], concern, details),
         commit=True
     )
@@ -446,7 +550,7 @@ def add_concern():
 @app.route("/roadmap/<int:career_id>")
 @login_required
 def roadmap(career_id):
-    career = query("SELECT * FROM careers WHERE id=%s", (career_id,), one=True)
+    career = query("SELECT * FROM careers WHERE id=?", (career_id,), one=True)
     if not career:
         return "Career not found", 404
     return render_template("roadmap.html", career=career, user=current_user())
@@ -472,19 +576,18 @@ def chat():
     return jsonify({"reply": reply})
 
 
-@app.errorhandler(Error)
+@app.errorhandler(sqlite3.Error)
 def db_error(error):
     return render_template(
         "error.html",
-        message="Database connection/query error. Check your .env settings and MySQL service.",
+        message="Database error. The local SQLite database could not be read or updated.",
         details=str(error)
     ), 500
 
 
+# Initialize automatically so Gunicorn/Render also creates the database.
+initialize_database()
+
+
 if __name__ == "__main__":
-    try:
-        initialize_database()
-        print("SkillPath AI database initialized successfully.")
-    except Exception as e:
-        print("Database initialization failed:", e)
-    app.run(debug=True, host="127.0.0.1", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=int(os.getenv("PORT", "5000")))
